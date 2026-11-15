@@ -1,6 +1,6 @@
 ---
 name: tracker
-description: Live progress page for long jobs. Use this whenever the user types /tracker, and also, without being asked, at the start of any request you expect to take more than 15 minutes (multi-step research, reports, data clean-ups, building or fixing code across several files, anything with many tool calls). Adds a run with steps tailored to the request to the owner's private "Claude Run Tracker" page and keeps it updated as steps start, finish or fail, or as the plan changes, so the owner can follow along from any device.
+description: Live progress page for long jobs. Use this whenever the user types /tracker, and also, without being asked, at the start of any request you expect to take more than 15 minutes (multi-step research, reports, data clean-ups, building or fixing code across several files, anything with many tool calls). Adds a run with steps tailored to the request to the owner's private "Claude Run Tracker" page, with time estimates, and keeps it updated as steps start, finish or fail, or as the plan changes, so the owner can follow along from any device.
 ---
 
 # Tracker
@@ -21,16 +21,25 @@ The owner follows long jobs from their phone or another computer. The tracker pa
 
 ```
 runs/<runId>                    runId: YYYYMMDD-HHMM-short-slug, e.g. 20261114-0905-q3-sales-summary
-  title    short plain name of the job
-  started  UTC time, e.g. "2026-11-14T09:05:00Z" (date only "2026-11-14" if you can't tell the time)
-  updated  UTC time of this write
-  status   in_progress | waiting | done | failed | stopped
-  note     one line: interruptions, questions for the owner, plan changes ("" if none)
-  steps    list, in display order, of { name, what, status, result }
-           step status: waiting | in_progress | done | failed | skipped
+  title         short plain name of the job
+  started       UTC time, e.g. "2026-11-14T09:05:00Z"
+  updated       UTC time of this write
+  ended         UTC time the run finished (leave out until then)
+  estimate_min  your estimate for the whole job, in minutes
+  status        in_progress | waiting | done | failed | stopped
+  note          one line: interruptions, questions for the owner, plan changes ("" if none)
+  steps         list, in display order, of:
+    name, what, status, result
+    started, ended   UTC times the step began / finished (leave out until they happen)
+    estimate_min     your estimate for this step, in minutes
+    progress         optional 0-100, only when you can measure it (e.g. 30 of 120 files = 25)
+    substeps         optional list with the same fields (one level only)
+  step status: waiting | in_progress | done | failed | skipped
 ```
 
-Write for a non-technical reader: `name` is 1 to 3 words, `what` is one short plain sentence, `result` is one line filled when a step ends (what came out, or why it failed). Plan 3 to 8 steps that fit this request. Keep one step `in_progress` while working. Get the time with `date -u +%Y-%m-%dT%H:%M:%SZ` when you have a shell; otherwise use the time you know.
+The page works out the rest: how long ago each item started, its estimated end, and progress percentages. Without `progress`, it uses the status (done = 100%, waiting = 0%) or the time spent against the estimate, shown with "~".
+
+Write for a non-technical reader: `name` is 1 to 3 words, `what` is one short plain sentence, `result` is one line filled when a step ends (what came out, or why it failed). Plan 3 to 8 steps that fit this request, each with an honest estimate. Use substeps only when a step has clearly separate parts worth seeing, such as one per region or per file. Keep one step `in_progress` while working. Get the time with `date -u +%Y-%m-%dT%H:%M:%SZ` when you have a shell; otherwise use the time you know.
 
 Run `status`: `waiting` when you need the owner (say what in `note`), `done` when every step is done or skipped, `failed` when the job cannot finish, `stopped` when the owner cancels.
 
@@ -42,11 +51,15 @@ Run `status`: `waiting` when you need the owner (say what in `note`), `done` whe
 {"action": "batch", "url": "https://claude.ai/artifact/RJKSUfXkHnFywKtyeYbrJK", "writes": [
   {"op": "set", "collection": "runs", "doc_id": "20261114-0905-q3-sales-summary", "data": {
     "title": "Q3 sales summary", "started": "2026-11-14T09:05:00Z", "updated": "2026-11-14T09:05:00Z",
-    "status": "in_progress", "note": "",
+    "estimate_min": 40, "status": "in_progress", "note": "",
     "steps": [
-      {"name": "Collect figures", "what": "Pull Q3 sales from the spreadsheet", "status": "in_progress", "result": ""},
-      {"name": "Check totals", "what": "Compare with last quarter", "status": "waiting", "result": ""},
-      {"name": "Write summary", "what": "One-page summary in plain words", "status": "waiting", "result": ""}]}}]}
+      {"name": "Collect figures", "what": "Pull Q3 sales from the spreadsheet", "status": "in_progress",
+       "started": "2026-11-14T09:05:00Z", "estimate_min": 10, "result": ""},
+      {"name": "Check totals", "what": "Compare with last quarter", "status": "waiting", "estimate_min": 15, "result": "",
+       "substeps": [
+         {"name": "North", "what": "North region totals", "status": "waiting", "estimate_min": 5, "result": ""},
+         {"name": "South", "what": "South region totals", "status": "waiting", "estimate_min": 10, "result": ""}]},
+      {"name": "Write summary", "what": "One-page summary in plain words", "status": "waiting", "estimate_min": 15, "result": ""}]}}]}
 ```
 
 **Update** (step 1 done, step 2 started). Use `update`, with `if_version` set to the `version` the previous write returned:
@@ -54,14 +67,20 @@ Run `status`: `waiting` when you need the owner (say what in `note`), `done` whe
 ```json
 {"action": "batch", "url": "https://claude.ai/artifact/RJKSUfXkHnFywKtyeYbrJK", "writes": [
   {"op": "update", "collection": "runs", "doc_id": "20261114-0905-q3-sales-summary", "if_version": 1, "data": {
-    "updated": "2026-11-14T09:20:00Z",
+    "updated": "2026-11-14T09:16:00Z",
     "steps": [
-      {"name": "Collect figures", "what": "Pull Q3 sales from the spreadsheet", "status": "done", "result": "1,240 rows, 3 regions"},
-      {"name": "Check totals", "what": "Compare with last quarter", "status": "in_progress", "result": ""},
-      {"name": "Write summary", "what": "One-page summary in plain words", "status": "waiting", "result": ""}]}}]}
+      {"name": "Collect figures", "what": "Pull Q3 sales from the spreadsheet", "status": "done",
+       "started": "2026-11-14T09:05:00Z", "ended": "2026-11-14T09:16:00Z", "estimate_min": 10, "result": "1,240 rows, 3 regions"},
+      {"name": "Check totals", "what": "Compare with last quarter", "status": "in_progress",
+       "started": "2026-11-14T09:16:00Z", "estimate_min": 15, "result": "",
+       "substeps": [
+         {"name": "North", "what": "North region totals", "status": "in_progress", "started": "2026-11-14T09:16:00Z", "estimate_min": 5, "result": ""},
+         {"name": "South", "what": "South region totals", "status": "waiting", "estimate_min": 10, "result": ""}]},
+      {"name": "Write summary", "what": "One-page summary in plain words", "status": "waiting", "estimate_min": 15, "result": ""}]}}]}
 ```
 
-- **Always send the whole `steps` list.** Lists are replaced, not merged. That is also how you add, rename, re-order or remove a step: send the new list, keep earlier results, and say why in `note`.
+- **Always send the whole `steps` list**, substeps included. Lists are replaced, not merged. That is also how you add, rename, re-order or remove a step: send the new list, keep earlier times and results, and say why in `note`.
+- If an estimate turns out wrong, update it and say so in `note`. At the end, set the run's `ended`.
 - Other fields can be sent alone, e.g. `"data": {"updated": "...", "note": "Paused: waiting for the owner to confirm regions"}`.
 - If a write is refused as out of date, or you lost the version, read the run (`"action": "get", "collection": "runs", "doc_id": ...`) and redo the write on top of it.
 - If one change touches several runs, put them all in the same batch.
@@ -69,11 +88,11 @@ Run `status`: `waiting` when you need the owner (say what in `note`), `done` whe
 ## When to write
 
 1. At the start, before the real work begins.
-2. When a step starts, finishes, fails or is skipped. Finishing one step and starting the next is one write.
-3. When the plan changes or you are interrupted or blocked (update `note`).
-4. At the end: final run status and every step's final status and result.
+2. When a step or substep starts, finishes, fails or is skipped. Finishing one and starting the next is one write.
+3. When the plan or an estimate changes, or you are interrupted or blocked (update `note`).
+4. At the end: final run status, `ended`, and every step's final status, times and result.
 
-Write only on real changes. Writing on a timer just adds noise.
+Write only on real changes. The page keeps the clock and percentages moving on its own, so writing on a timer just adds noise.
 
 ## Share the link once per run
 

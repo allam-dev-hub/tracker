@@ -4,10 +4,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one centred column. Header with live state and counts, then run cards newest first, each opening onto its step table. */
+/* Layout: one centred column. Header with live state and counts, then run cards newest first: title, overall progress, four timing KPIs, then the step table. */
 :root {
   --bg: #F4F6F8;
   --surface: #FFFFFF;
+  --tint: #F8F9FB;
   --ink: #151922;
   --muted: #5B6474;
   --line: #E1E5EB;
@@ -23,7 +24,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0E1116; --surface: #161A21; --ink: #E7EAF0; --muted: #98A2B3; --line: #272D37; --accent: #2BB3CF;
+    --bg: #0E1116; --surface: #161A21; --tint: #13171D; --ink: #E7EAF0; --muted: #98A2B3; --line: #272D37; --accent: #2BB3CF;
     --done: #4CC38A; --done-bg: #12291E; --prog: #7AA7FF; --prog-bg: #16233D;
     --wait: #E8B04B; --wait-bg: #2D2412; --fail: #FF7B72; --fail-bg: #351A1B;
     --skip: #9AA3AF; --skip-bg: #20252D;
@@ -31,7 +32,7 @@
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0E1116; --surface: #161A21; --ink: #E7EAF0; --muted: #98A2B3; --line: #272D37; --accent: #2BB3CF;
+  --bg: #0E1116; --surface: #161A21; --tint: #13171D; --ink: #E7EAF0; --muted: #98A2B3; --line: #272D37; --accent: #2BB3CF;
   --done: #4CC38A; --done-bg: #12291E; --prog: #7AA7FF; --prog-bg: #16233D;
   --wait: #E8B04B; --wait-bg: #2D2412; --fail: #FF7B72; --fail-bg: #351A1B;
   --skip: #9AA3AF; --skip-bg: #20252D;
@@ -40,7 +41,7 @@
 
 body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
 .wrap {
-  max-width: 1000px; margin: 0 auto;
+  max-width: 1240px; margin: 0 auto;
   padding-block: 28px 56px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -51,7 +52,7 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
 .top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
 .top > div { min-width: 0; }
 h1 { margin: 0; font: 700 clamp(22px, 4.2vw, 30px)/1.15 var(--font-display); letter-spacing: -0.01em; text-wrap: balance; }
-.sub { margin: 4px 0 0; color: var(--muted); max-width: 60ch; }
+.sub { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
 .live {
   display: inline-flex; align-items: center; gap: 8px;
   font: 500 13px/1.2 var(--font-body); color: var(--muted);
@@ -77,7 +78,7 @@ h1 { margin: 0; font: 700 clamp(22px, 4.2vw, 30px)/1.15 var(--font-display); let
 .run { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
 .run > summary {
   list-style: none; cursor: pointer; position: relative;
-  padding: 16px 52px 16px 18px; display: grid; gap: 6px; border-radius: 10px;
+  padding: 16px 52px 18px 18px; display: grid; gap: 12px; border-radius: 10px;
 }
 .run > summary::-webkit-details-marker { display: none; }
 .run > summary::after {
@@ -91,14 +92,29 @@ h1 { margin: 0; font: 700 clamp(22px, 4.2vw, 30px)/1.15 var(--font-display); let
 .run-title { margin: 0; font: 600 18px/1.3 var(--font-display); text-wrap: balance; overflow-wrap: anywhere; min-width: 0; }
 .run-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--muted); font-size: 13.5px; }
 .run-meta .num { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: 12.5px; }
-.stale { color: var(--wait); font-weight: 500; }
+.late { color: var(--wait) !important; font-weight: 500; }
 
-.strip { display: flex; gap: 3px; margin-top: 6px; max-width: 520px; }
-.seg { flex: 1; height: 6px; border-radius: 2px; background: var(--line); }
-.seg[data-s="done"] { background: var(--done); }
-.seg[data-s="in_progress"] { background: var(--prog); animation: beat 1.6s ease-in-out infinite; }
-.seg[data-s="failed"] { background: var(--fail); }
-.seg[data-s="skipped"] { background: repeating-linear-gradient(135deg, var(--line) 0 3px, transparent 3px 6px); }
+/* Progress bars */
+.pgwrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pgwrap.overall { gap: 14px; max-width: 680px; }
+.bar { position: relative; flex: 1; min-width: 40px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar.big { height: 10px; border-radius: 5px; }
+.bar > i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: inherit; background: var(--skip); transition: width .4s ease; }
+.bar[data-s="done"] > i { background: var(--done); }
+.bar[data-s="in_progress"] > i { background: var(--prog); }
+.bar[data-s="waiting"] > i { background: var(--wait); }
+.bar[data-s="failed"] > i { background: var(--fail); }
+.bar[data-s="skipped"] { background: repeating-linear-gradient(135deg, var(--line) 0 3px, transparent 3px 6px); }
+.pct { font: 500 12.5px/1 var(--font-data); font-variant-numeric: tabular-nums; min-width: 3.4em; text-align: right; color: var(--ink); }
+.pct.big { font: 700 22px/1 var(--font-display); min-width: 3.1em; }
+.pct.guess { color: var(--muted); }
+
+/* Run KPIs */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 0; max-width: 860px; }
+.kpi { display: grid; align-content: start; gap: 2px; padding: 0 16px; border-left: 1px solid var(--line); min-width: 0; }
+.kpi:first-child { padding-left: 0; border-left: 0; }
+.kpi .v { font: 600 15px/1.3 var(--font-body); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi .s { font-size: 12.5px; color: var(--muted); }
 
 .pill {
   display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
@@ -122,18 +138,28 @@ h1 { margin: 0; font: 700 clamp(22px, 4.2vw, 30px)/1.15 var(--font-display); let
 .table-wrap { overflow-x: auto; border-top: 1px solid var(--line); }
 table.steps { width: 100%; border-collapse: collapse; font-size: 14px; }
 .steps th {
-  text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line);
+  text-align: left; vertical-align: bottom; padding: 10px 12px; border-bottom: 1px solid var(--line);
   font: 600 11.5px/1.4 var(--font-body); text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
 }
+.steps th .hs { display: block; text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 11.5px; }
 .steps td { padding: 11px 12px; vertical-align: top; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
 .steps tbody tr:first-child td { border-top: 0; }
 .steps th:first-child, .steps td:first-child { padding-left: 18px; }
 .steps th:last-child, .steps td:last-child { padding-right: 18px; }
-.steps .n { width: 2.2rem; font-family: var(--font-data); font-variant-numeric: tabular-nums; color: var(--muted); }
-.steps .name { font-weight: 600; width: 22%; }
-.steps .what { width: 34%; }
-.steps .st { width: 9.5rem; }
+.steps .n { width: 2.6rem; font-family: var(--font-data); font-variant-numeric: tabular-nums; color: var(--muted); }
+.steps .name { font-weight: 600; width: 12%; }
+.steps .what { width: 18%; }
+.steps .st { width: 8.4rem; }
+.steps .pg { width: 8rem; }
+.steps td.pg { padding-top: 15px; }
+.steps .t1 { width: 7.2rem; }
+.steps .t2 { width: 8rem; }
 .steps .res { color: var(--muted); }
+.steps .k { display: none; }
+.steps .v { font-variant-numeric: tabular-nums; }
+.steps .s { display: block; font-size: 12.5px; color: var(--muted); }
+.steps tr.sub td { background: var(--tint); }
+.steps tr.sub .name { padding-left: 26px; font-weight: 500; }
 .steps tr[data-s="in_progress"] td:first-child { box-shadow: inset 3px 0 0 var(--prog); }
 .steps tr[data-s="failed"] td:first-child { box-shadow: inset 3px 0 0 var(--fail); }
 .steps tr[data-s="failed"] .res { color: var(--fail); }
@@ -149,32 +175,46 @@ table.steps { width: 100%; border-collapse: collapse; font-size: 14px; }
 .foot { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
 
 @keyframes beat { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
-@media (prefers-reduced-motion: reduce) { .live .dot, .seg { animation: none !important; } .run > summary::after { transition: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .live .dot { animation: none !important; }
+  .run > summary::after, .bar > i { transition: none; }
+}
 
-/* Phone: each step becomes a compact stacked row */
-@media (max-width: 640px) {
-  .run > summary { padding: 14px 44px 14px 14px; }
-  .run > summary::after { right: 16px; }
-  .note { padding: 12px 14px; }
+/* Narrow screens: each step becomes a compact stacked row */
+@media (max-width: 1120px) {
   .table-wrap { overflow-x: visible; }
   .steps thead { display: none; }
   .steps, .steps tbody { display: block; }
   .steps tr {
-    display: grid; grid-template-columns: 1.6rem minmax(0, 1fr) auto;
-    grid-template-areas: "n name st" "n what what" "n res res";
-    gap: 2px 8px; padding: 12px 14px; border-top: 1px solid var(--line);
+    display: grid; grid-template-columns: 2.4rem minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-areas: "n name name st" "n what what what" "n pg pg pg" "n t1 t2 t2" "n res res res";
+    gap: 4px 10px; padding: 12px 18px; border-top: 1px solid var(--line);
   }
   .steps tbody tr:first-child { border-top: 0; }
-  .steps td { display: block; padding: 0 !important; border: 0; width: auto !important; }
+  .steps td { display: block; padding: 0 !important; border: 0; width: auto !important; background: none !important; box-shadow: none !important; }
   .steps .n { grid-area: n; padding-top: 2px !important; }
   .steps .name { grid-area: name; }
   .steps .st { grid-area: st; }
   .steps .what { grid-area: what; }
+  .steps .pg { grid-area: pg; margin: 4px 0 2px; }
+  .steps .pg .pgwrap { max-width: 420px; }
+  .steps .t1 { grid-area: t1; }
+  .steps .t2 { grid-area: t2; }
   .steps .res { grid-area: res; font-size: 13.5px; }
   .steps .res:empty, .steps .what:empty { display: none; }
-  .steps tr td:first-child { box-shadow: none !important; }
+  .steps .k { display: inline; color: var(--muted); }
+  .steps tr.sub { background: var(--tint); padding-left: 36px; }
   .steps tr[data-s="in_progress"] { box-shadow: inset 3px 0 0 var(--prog); }
   .steps tr[data-s="failed"] { box-shadow: inset 3px 0 0 var(--fail); }
+}
+@media (max-width: 640px) {
+  .run > summary { padding: 14px 44px 16px 14px; }
+  .run > summary::after { right: 16px; }
+  .note { padding: 12px 14px; }
+  .steps tr { padding: 12px 14px; }
+  .steps tr.sub { padding-left: 28px; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi:nth-child(3) { padding-left: 0; border-left: 0; }
 }
 </style>
 
@@ -182,7 +222,7 @@ table.steps { width: 100%; border-collapse: collapse; font-size: 14px; }
   <header class="top">
     <div>
       <h1>Claude Run Tracker</h1>
-      <p class="sub">Long jobs Claude is working on, step by step. This page updates by itself.</p>
+      <p class="sub">Long jobs Claude is working on, step by step, with timing and progress. This page updates by itself.</p>
     </div>
     <div class="live" id="live" data-state="connecting" role="status" aria-live="polite">
       <span class="dot"></span><span id="liveText">Connecting…</span>
@@ -195,13 +235,15 @@ table.steps { width: 100%; border-collapse: collapse; font-size: 14px; }
       <p>Runs appear here as soon as Claude starts one.</p>
     </div>
   </main>
-  <p class="foot">Claude fills this page through the <strong>/tracker</strong> skill. Nothing here needs your input.</p>
+  <p class="foot">Claude fills this page through the <strong>/tracker</strong> skill. Times are in your local time zone. A percentage with “~” is estimated from time spent. Nothing here needs your input.</p>
 </div>
 
 <script>
 (function () {
   "use strict";
 
+  var MIN = 60000;
+  var STALE_MS = 3 * 60 * MIN;
   var STEP = {
     done:        { label: "Done",        icon: "✅" },
     in_progress: { label: "In progress", icon: "🔄" },
@@ -223,7 +265,6 @@ table.steps { width: 100%; border-collapse: collapse; font-size: 14px; }
     pending: "waiting", queued: "waiting", todo: "waiting", paused: "waiting", blocked: "waiting",
     skip: "skipped", cancelled: "stopped", canceled: "stopped", aborted: "stopped"
   };
-  var STALE_MS = 3 * 60 * 60 * 1000;
 
   var runs = [];
   var loaded = false;
@@ -233,6 +274,7 @@ table.steps { width: 100%; border-collapse: collapse; font-size: 14px; }
   var loadTimer = null;
   var retried = false;
 
+  /* ---------- helpers ---------- */
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -240,65 +282,160 @@ table.steps { width: 100%; border-collapse: collapse; font-size: 14px; }
     if (text !== undefined && text !== null) e.textContent = String(text);
     return e;
   }
+  function isObj(x) { return !!x && typeof x === "object" && !Array.isArray(x); }
   function norm(s) {
     if (typeof s !== "string") return "";
     var k = s.trim().toLowerCase().replace(/[\s-]+/g, "_");
     return ALIAS[k.replace(/_/g, "")] || ALIAS[k] || k;
   }
+  function num(x) {
+    if (x === null || x === undefined || x === "") return null;
+    var n = Number(x);
+    return isFinite(n) ? n : null;
+  }
+  function clamp(p) { return Math.max(0, Math.min(100, p)); }
   function isDateOnly(s) { return typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s.trim()); }
+  /* A real moment in time; date-only values are not used for timing maths. */
   function parseTime(s) {
     if (typeof s === "number" && isFinite(s)) return s;
+    if (typeof s !== "string" || !s.trim() || isDateOnly(s)) return null;
+    var t = Date.parse(s.trim());
+    return isNaN(t) ? null : t;
+  }
+  function sortTime(s) {
     if (typeof s !== "string" || !s.trim()) return null;
     var t = Date.parse(s.trim());
     return isNaN(t) ? null : t;
   }
 
   var nowYear = new Date().getFullYear();
-  function fmtStart(s) {
-    var t = parseTime(s);
-    if (t === null) return "Start time not given";
+  function sameDay(t) { return new Date(t).toDateString() === new Date().toDateString(); }
+  function fmtFull(t) {
     var d = new Date(t);
-    if (isDateOnly(s)) {
-      return new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(d);
-    }
-    var opts = { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" };
-    if (d.getFullYear() !== nowYear) opts.year = "numeric";
-    return new Intl.DateTimeFormat(undefined, opts).format(d);
+    var o = { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" };
+    if (d.getFullYear() !== nowYear) o.year = "numeric";
+    return new Intl.DateTimeFormat(undefined, o).format(d);
   }
-  function rel(t) {
-    var diff = Date.now() - t;
-    if (diff < 0) diff = 0;
-    var m = Math.floor(diff / 60000);
+  function fmtClock(t) {
+    var o = sameDay(t) ? { hour: "numeric", minute: "2-digit" } : { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" };
+    return new Intl.DateTimeFormat(undefined, o).format(new Date(t));
+  }
+  function fmtDay(s) {
+    return new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(Date.parse(s)));
+  }
+  function fmtDur(min) {
+    if (min === null || min === undefined || !isFinite(min)) return "—";
+    if (min < 1) return "under 1 min";
+    var m = Math.round(min);
+    if (m < 60) return m + " min";
+    var h = Math.floor(m / 60), r = m % 60;
+    if (h < 48) return h + " h" + (r ? " " + r + " min" : "");
+    var d = Math.floor(h / 24), rh = h % 24;
+    return d + " days" + (rh ? " " + rh + " h" : "");
+  }
+  function ago(t, now) {
+    var m = Math.max(0, (now - t) / MIN);
     if (m < 1) return "just now";
-    if (m < 60) return m + " min ago";
-    var h = Math.floor(m / 60);
-    if (h < 24) return h + " h ago";
-    var d = Math.floor(h / 24);
-    return d === 1 ? "1 day ago" : d + " days ago";
+    return fmtDur(m) + " ago";
   }
   function clock(t) {
     return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit" }).format(new Date(t));
   }
 
-  function stepsOf(run) {
-    var raw = run.steps;
-    var list = [];
-    if (Array.isArray(raw)) list = raw.slice();
-    else if (raw && typeof raw === "object") {
-      list = Object.keys(raw).map(function (k) { return Object.assign({ _k: k }, raw[k]); });
-      list.sort(function (a, b) { return (Number(a.order) || 0) - (Number(b.order) || 0); });
+  /* ---------- model ---------- */
+  function listOf(raw) {
+    if (Array.isArray(raw)) return raw.filter(isObj);
+    if (isObj(raw)) {
+      return Object.keys(raw).map(function (k) { return raw[k]; }).filter(isObj)
+        .sort(function (a, b) { return (Number(a.order) || 0) - (Number(b.order) || 0); });
     }
-    return list.filter(function (s) { return s && typeof s === "object"; }).map(function (s, i) {
-      return {
-        name: s.name || s.step || s.title || ("Step " + (i + 1)),
-        what: s.what || s.description || "",
-        status: norm(s.status) || "waiting",
-        result: s.result || ""
-      };
-    });
+    return [];
   }
-  function runStatus(run, steps) {
-    var s = norm(run.status);
+  function normItem(s, i, parentLabel) {
+    var it = {
+      isSub: !!parentLabel,
+      label: parentLabel ? parentLabel + "." + (i + 1) : String(i + 1),
+      name: s.name || s.step || s.title || ((parentLabel ? "Part " : "Step ") + (i + 1)),
+      what: s.what || s.description || "",
+      status: norm(s.status) || "waiting",
+      result: s.result || "",
+      started: parseTime(s.started),
+      ended: parseTime(s.ended),
+      est: num(s.estimate_min !== undefined ? s.estimate_min : (s.estimate_minutes !== undefined ? s.estimate_minutes : s.estimate)),
+      progress: num(s.progress),
+      subs: []
+    };
+    if (!parentLabel) {
+      it.subs = listOf(s.substeps).map(function (x, j) { return normItem(x, j, it.label); });
+      var live = it.subs.filter(function (x) { return x.status !== "skipped"; });
+      if (it.est === null && live.length && live.every(function (x) { return x.est !== null; })) {
+        it.est = live.reduce(function (a, x) { return a + x.est; }, 0);
+      }
+      if (it.started === null) {
+        var st = it.subs.map(function (x) { return x.started; }).filter(function (x) { return x !== null; });
+        if (st.length) it.started = Math.min.apply(null, st);
+      }
+      if (it.ended === null && (it.status === "done" || it.status === "failed")) {
+        var en = it.subs.map(function (x) { return x.ended; }).filter(function (x) { return x !== null; });
+        if (en.length) it.ended = Math.max.apply(null, en);
+      }
+    }
+    return it;
+  }
+
+  /* Lay items end to end in time: actual times where known, planned times otherwise. Returns where the last one ends. */
+  function plan(items, cursor, now) {
+    items.forEach(function (it) {
+      it.pStart = null; it.startPlanned = false; it.pEnd = null; it.endKind = "none"; it.over = 0;
+      if (it.status === "skipped") return;
+      var start = it.started;
+      if (start === null && it.status === "waiting" && cursor !== null) { start = Math.max(cursor, now); it.startPlanned = true; }
+      it.pStart = start;
+      var subEnd = it.subs.length ? plan(it.subs, start !== null ? start : cursor, now) : null;
+      var end = null;
+      if ((it.status === "done" || it.status === "failed") && it.ended !== null) {
+        end = it.ended; it.endKind = "actual";
+      } else if (start !== null && it.est !== null) {
+        end = start + it.est * MIN; it.endKind = "planned";
+        if (it.status === "in_progress" && now - end >= MIN) { it.over = (now - end) / MIN; it.endKind = "late"; end = now; }
+        if (it.status === "done" || it.status === "failed") it.endKind = "none";
+      }
+      if (subEnd !== null && it.status !== "done" && it.status !== "failed" && (end === null || subEnd > end)) {
+        end = subEnd; if (it.endKind === "none") it.endKind = "planned";
+      }
+      it.pEnd = it.endKind === "none" ? null : end;
+      if (end !== null) cursor = end;
+    });
+    return cursor;
+  }
+
+  function pct(it, now) {
+    if (it.status === "skipped") return { p: null };
+    if (it.status === "done") return { p: 100 };
+    if (it.progress !== null) return { p: clamp(it.progress) };
+    if (it.subs.length) { var r = agg(it.subs, now); if (r.p !== null) return r; }
+    if (it.status === "waiting") return { p: 0 };
+    if (it.status === "in_progress" && it.started !== null && it.est) {
+      return { p: Math.min(95, Math.max(0, (now - it.started) / (it.est * MIN) * 100)), guess: true };
+    }
+    return { p: null };
+  }
+  function agg(items, now) {
+    var live = items.filter(function (x) { return x.status !== "skipped"; });
+    if (!live.length) return { p: items.length ? 100 : null };
+    var byEst = live.every(function (x) { return x.est !== null && x.est > 0; });
+    var tw = 0, tp = 0, guess = false, known = false;
+    live.forEach(function (x) {
+      var r = pct(x, now), w = byEst ? x.est : 1;
+      tw += w;
+      if (r.p !== null) { tp += w * r.p; known = true; }
+      if (r.guess || (r.p === null && x.status === "in_progress")) guess = true;
+    });
+    return { p: known && tw ? tp / tw : null, guess: guess };
+  }
+
+  function runStatus(r, steps) {
+    var s = norm(r.status);
     if (s) return s;
     if (steps.some(function (x) { return x.status === "failed"; })) return "failed";
     if (steps.some(function (x) { return x.status === "in_progress"; })) return "in_progress";
@@ -306,6 +443,7 @@ table.steps { width: 100%; border-collapse: collapse; font-size: 14px; }
     return "waiting";
   }
 
+  /* ---------- view pieces ---------- */
   function pill(status, table) {
     var def = table[status] || { label: status ? status.replace(/_/g, " ") : "Unknown", icon: "" };
     var p = el("span", "pill");
@@ -313,6 +451,68 @@ table.steps { width: 100%; border-collapse: collapse; font-size: 14px; }
     if (def.icon) p.appendChild(el("span", "", def.icon)).setAttribute("aria-hidden", "true");
     p.appendChild(el("span", "", def.label));
     return p;
+  }
+  function progressBar(P, status, big) {
+    var w = el("div", "pgwrap" + (big ? " overall" : ""));
+    var b = el("div", "bar" + (big ? " big" : ""));
+    b.dataset.s = status;
+    var fill = el("i");
+    var shown = null;
+    if (P.p !== null && status !== "skipped") {
+      shown = Math.round(P.p);
+      if (shown === 100 && status !== "done") shown = 99;
+      fill.style.width = clamp(P.p).toFixed(1) + "%";
+      b.setAttribute("role", "progressbar");
+      b.setAttribute("aria-valuemin", "0");
+      b.setAttribute("aria-valuemax", "100");
+      b.setAttribute("aria-valuenow", String(shown));
+    }
+    b.appendChild(fill);
+    w.appendChild(b);
+    var txt = shown === null ? "—" : (P.guess ? "~" : "") + shown + "%";
+    w.appendChild(el("span", "pct" + (big ? " big" : "") + (P.guess ? " guess" : ""), txt));
+    return w;
+  }
+  function kpi(label, value, sub, late) {
+    var d = el("div", "kpi");
+    d.appendChild(el("span", "label", label));
+    d.appendChild(el("span", "v", value));
+    if (sub) d.appendChild(el("span", "s" + (late ? " late" : ""), sub));
+    return d;
+  }
+  function timeCell(cls, key, value, sub, late) {
+    var td = el("td", cls);
+    td.appendChild(el("span", "k", key + " "));
+    td.appendChild(el("span", "v", value));
+    if (sub) td.appendChild(el("span", "s" + (late ? " late" : ""), sub));
+    return td;
+  }
+
+  function stepRow(it, now) {
+    var tr = el("tr", it.isSub ? "sub" : "");
+    tr.dataset.s = it.status;
+    tr.appendChild(el("td", "n", it.label));
+    tr.appendChild(el("td", "name", it.name));
+    tr.appendChild(el("td", "what", it.what));
+    var st = el("td", "st"); st.appendChild(pill(it.status, STEP)); tr.appendChild(st);
+    var pg = el("td", "pg"); pg.appendChild(progressBar(pct(it, now), it.status, false)); tr.appendChild(pg);
+
+    // Start time + how long ago
+    if (it.status === "skipped") tr.appendChild(timeCell("t1", "Started", "—", null));
+    else if (it.started !== null) tr.appendChild(timeCell("t1", "Started", fmtClock(it.started), ago(it.started, now)));
+    else if (it.startPlanned && it.pStart !== null) tr.appendChild(timeCell("t1", "Starts", "~" + fmtClock(it.pStart), "planned"));
+    else tr.appendChild(timeCell("t1", "Started", "—", "not started"));
+
+    // Estimated duration + estimated end
+    var sub = null, late = false;
+    if (it.status === "skipped") sub = null;
+    else if (it.endKind === "actual") sub = "ended " + fmtClock(it.pEnd);
+    else if (it.endKind === "late") { sub = "over by " + fmtDur(it.over); late = true; }
+    else if (it.endKind === "planned") sub = "ends ~" + fmtClock(it.pEnd);
+    tr.appendChild(timeCell("t2", "Est.", it.est !== null ? fmtDur(it.est) : "—", sub, late));
+
+    tr.appendChild(el("td", "res", it.result));
+    return tr;
   }
 
   function setLive(state) {
@@ -322,8 +522,7 @@ table.steps { width: 100%; border-collapse: collapse; font-size: 14px; }
     txt.replaceChildren();
     if (state === "live") {
       txt.append("Live · last change ");
-      var tm = el("time", "", clock(lastSync));
-      txt.appendChild(tm);
+      txt.appendChild(el("time", "", clock(lastSync)));
     } else if (state === "cached") {
       txt.textContent = "Showing saved copy · reconnecting…";
     } else if (state === "slow") {
@@ -369,11 +568,107 @@ table.steps { width: 100%; border-collapse: collapse; font-size: 14px; }
     return d;
   }
 
+  function buildRun(item, idx, now) {
+    var r = item.raw, steps = item.steps, status = item.status;
+    var start = parseTime(r.started);
+    var live = steps.filter(function (s) { return s.status !== "skipped"; });
+    var sumEst = live.length && live.every(function (s) { return s.est !== null; })
+      ? live.reduce(function (a, s) { return a + s.est; }, 0) : null;
+    var est = num(r.estimate_min);
+    if (est === null) est = sumEst;
+    var cursor = plan(steps, start, now);
+    var plannedEnd = (start !== null && est !== null) ? start + est * MIN : null;
+    var projEnd = (sumEst !== null && start !== null) ? cursor : plannedEnd;
+    var finished = status === "done" || status === "failed" || status === "stopped";
+    var ended = parseTime(r.ended);
+    if (ended === null && finished) {
+      var ends = steps.map(function (s) { return s.ended; }).filter(function (x) { return x !== null; });
+      ended = ends.length ? Math.max.apply(null, ends) : parseTime(r.updated);
+    }
+    var P = status === "done" ? { p: 100 } : (num(r.progress) !== null ? { p: clamp(num(r.progress)) } : agg(steps, now));
+
+    var det = el("details", "run");
+    det.dataset.status = status;
+    var defaultOpen = idx === 0 || status === "in_progress" || status === "waiting" || status === "failed";
+    det.open = openState.has(item.id) ? openState.get(item.id) : defaultOpen;
+    det.addEventListener("toggle", function () { openState.set(item.id, det.open); });
+
+    var sum = el("summary");
+    var head = el("div", "run-head");
+    head.appendChild(pill(status, RUN));
+    head.appendChild(el("h2", "run-title", r.title || "Untitled run"));
+    sum.appendChild(head);
+
+    sum.appendChild(progressBar(P, status === "stopped" ? "skipped" : status, true));
+
+    // The four KPIs: start, how long ago, estimated duration, estimated end
+    var k = el("div", "kpis");
+    var startText = start !== null ? fmtFull(start) : (isDateOnly(r.started) ? fmtDay(r.started) : "Not given");
+    k.appendChild(kpi("Started", startText, null));
+    k.appendChild(kpi("How long ago", start !== null ? ago(start, now) : "—", null));
+    var durSub = null;
+    if (finished && ended !== null && start !== null) durSub = "took " + fmtDur((ended - start) / MIN);
+    else if (!finished && projEnd !== null && projEnd > now) durSub = "about " + fmtDur((projEnd - now) / MIN) + " left";
+    k.appendChild(kpi("Est. duration", est !== null ? fmtDur(est) : "—", est === null && !finished ? "no estimate yet" : durSub));
+    if (finished) {
+      k.appendChild(kpi("Ended", ended !== null ? fmtClock(ended) : "—", plannedEnd !== null ? "estimate was " + fmtClock(plannedEnd) : null));
+    } else {
+      var lateBy = (projEnd !== null && plannedEnd !== null) ? (projEnd - plannedEnd) / MIN : 0;
+      k.appendChild(kpi("Est. end", projEnd !== null ? "~" + fmtClock(projEnd) : "—",
+        lateBy >= 1 ? fmtDur(lateBy) + " later than planned" : null, lateBy >= 1));
+    }
+    sum.appendChild(k);
+
+    var meta = el("div", "run-meta");
+    var done = steps.filter(function (s) { return s.status === "done"; }).length;
+    var failed = steps.filter(function (s) { return s.status === "failed"; }).length;
+    meta.appendChild(el("span", "num", steps.length ? (done + " of " + steps.length + " steps done" + (failed ? " · " + failed + " failed" : "")) : "No steps yet"));
+    var upd = parseTime(r.updated);
+    if (status === "in_progress" && upd !== null && now - upd > STALE_MS) {
+      meta.appendChild(el("span", "late", "No update for " + fmtDur((now - upd) / MIN) + " · the session may have stopped"));
+    }
+    sum.appendChild(meta);
+    det.appendChild(sum);
+
+    var note = el("p", "note");
+    note.appendChild(el("span", "label", "Interruptions / notes"));
+    var nt = typeof r.note === "string" ? r.note.trim() : "";
+    note.appendChild(el("span", nt ? "text" : "text none", nt || "None so far"));
+    det.appendChild(note);
+
+    var wrap = el("div", "table-wrap");
+    var table = el("table", "steps");
+    var thead = el("thead"), hr = el("tr");
+    [["#", "n"], ["Step", "name"], ["What", "what"], ["Status", "st"], ["Progress", "pg"],
+     ["Started", "t1", "how long ago"], ["Est. time", "t2", "est. end"], ["Result", "res"]].forEach(function (h) {
+      var th = el("th", h[1], h[0]);
+      th.scope = "col";
+      if (h[2]) th.appendChild(el("span", "hs", h[2]));
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+    var tb = el("tbody");
+    if (!steps.length) {
+      var er = el("tr"), ec = el("td", "empty", "Claude has not listed the steps yet.");
+      ec.colSpan = 8; er.appendChild(ec); tb.appendChild(er);
+    }
+    steps.forEach(function (s) {
+      tb.appendChild(stepRow(s, now));
+      s.subs.forEach(function (x) { tb.appendChild(stepRow(x, now)); });
+    });
+    table.appendChild(tb);
+    wrap.appendChild(table);
+    det.appendChild(wrap);
+    return det;
+  }
+
   function render() {
+    var now = Date.now();
     var root = $("runs");
     var items = runs.map(function (r) {
-      var steps = stepsOf(r);
-      return { id: r.id, raw: r, steps: steps, status: runStatus(r, steps), t: parseTime(r.started) };
+      var steps = listOf(r.steps).map(function (s, i) { return normItem(s, i, ""); });
+      return { id: r.id, raw: r, steps: steps, status: runStatus(r, steps), t: sortTime(r.started) };
     });
     items.sort(function (a, b) {
       if (a.t === null && b.t === null) return a.id < b.id ? 1 : -1;
@@ -389,94 +684,16 @@ table.steps { width: 100%; border-collapse: collapse; font-size: 14px; }
       } else if (!loaded) {
         root.replaceChildren(infoCard("Loading runs…", "Runs appear here as soon as Claude starts one."));
       } else {
-        var code = el("code", "", "/tracker");
-        root.replaceChildren(infoCard("No runs yet", ["Type ", code, " in Claude, or ask for something that takes more than 15 minutes. The run and its steps appear here, newest first."]));
+        root.replaceChildren(infoCard("No runs yet", ["Type ", el("code", "", "/tracker"), " in Claude, or ask for something that takes more than 15 minutes. The run and its steps appear here, newest first."]));
       }
       return;
     }
-
     var frag = document.createDocumentFragment();
-    items.forEach(function (item, idx) {
-      var r = item.raw, steps = item.steps;
-      var det = el("details", "run");
-      det.dataset.status = item.status;
-      var defaultOpen = idx === 0 || item.status === "in_progress" || item.status === "waiting" || item.status === "failed";
-      det.open = openState.has(item.id) ? openState.get(item.id) : defaultOpen;
-      det.addEventListener("toggle", function () { openState.set(item.id, det.open); });
-
-      var sum = el("summary");
-      var head = el("div", "run-head");
-      head.appendChild(pill(item.status, RUN));
-      head.appendChild(el("h2", "run-title", r.title || "Untitled run"));
-      sum.appendChild(head);
-
-      var meta = el("div", "run-meta");
-      var started = el("span", "", "Started " + fmtStart(r.started));
-      meta.appendChild(started);
-      if (item.t !== null && !isDateOnly(r.started)) {
-        var relS = el("span", "", rel(item.t));
-        relS.dataset.rel = String(item.t);
-        meta.appendChild(relS);
-      }
-      var done = steps.filter(function (s) { return s.status === "done"; }).length;
-      var failed = steps.filter(function (s) { return s.status === "failed"; }).length;
-      var prog = steps.length ? (done + " of " + steps.length + " steps done" + (failed ? " · " + failed + " failed" : "")) : "No steps yet";
-      meta.appendChild(el("span", "num", prog));
-      var upd = parseTime(r.updated);
-      if (item.status === "in_progress" && upd !== null && !isDateOnly(r.updated) && Date.now() - upd > STALE_MS) {
-        meta.appendChild(el("span", "stale", "No update for " + rel(upd).replace(" ago", "") + " · the session may have stopped"));
-      }
-      sum.appendChild(meta);
-
-      if (steps.length) {
-        var strip = el("div", "strip");
-        strip.setAttribute("aria-hidden", "true");
-        steps.forEach(function (s) { var g = el("span", "seg"); g.dataset.s = s.status; strip.appendChild(g); });
-        sum.appendChild(strip);
-      }
-      det.appendChild(sum);
-
-      var note = el("p", "note");
-      note.appendChild(el("span", "label", "Interruptions / notes"));
-      var nt = typeof r.note === "string" ? r.note.trim() : "";
-      note.appendChild(el("span", nt ? "text" : "text none", nt || "None so far"));
-      det.appendChild(note);
-
-      var wrap = el("div", "table-wrap");
-      var table = el("table", "steps");
-      var thead = el("thead"), hr = el("tr");
-      [["#", "n"], ["Step", "name"], ["What", "what"], ["Status", "st"], ["Result", "res"]].forEach(function (h) {
-        var th = el("th", h[1], h[0]); th.scope = "col"; hr.appendChild(th);
-      });
-      thead.appendChild(hr);
-      table.appendChild(thead);
-      var tb = el("tbody");
-      if (!steps.length) {
-        var er = el("tr"), ec = el("td", "empty", "Claude has not listed the steps yet.");
-        ec.colSpan = 5; er.appendChild(ec); tb.appendChild(er);
-      }
-      steps.forEach(function (s, i) {
-        var tr = el("tr");
-        tr.dataset.s = s.status;
-        tr.appendChild(el("td", "n", i + 1));
-        tr.appendChild(el("td", "name", s.name));
-        tr.appendChild(el("td", "what", s.what));
-        var st = el("td", "st"); st.appendChild(pill(s.status, STEP)); tr.appendChild(st);
-        tr.appendChild(el("td", "res", s.result));
-        tb.appendChild(tr);
-      });
-      table.appendChild(tb);
-      wrap.appendChild(table);
-      det.appendChild(wrap);
-      frag.appendChild(det);
-    });
+    items.forEach(function (item, idx) { frag.appendChild(buildRun(item, idx, now)); });
     root.replaceChildren(frag);
   }
 
-  function tick() {
-    document.querySelectorAll("[data-rel]").forEach(function (n) { n.textContent = rel(Number(n.dataset.rel)); });
-  }
-
+  /* ---------- data ---------- */
   function armTimer() {
     clearTimeout(loadTimer);
     loadTimer = setTimeout(function () { setLive("slow"); render(); }, 10000);
@@ -525,11 +742,13 @@ table.steps { width: 100%; border-collapse: collapse; font-size: 14px; }
     subscribe(db);
   }
 
-  setInterval(tick, 30000);
+  // Times, "how long ago" and estimated progress move with the clock: redraw every 30 s
+  // unless the viewer is focused inside the list.
   setInterval(function () {
     var a = document.activeElement;
-    if (!a || !$("runs").contains(a)) render();
-  }, 5 * 60 * 1000);
+    if (!loaded || (a && a !== document.body && $("runs").contains(a))) return;
+    render();
+  }, 30000);
 
   start();
 })();
